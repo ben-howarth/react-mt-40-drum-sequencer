@@ -5,9 +5,9 @@ const NOTE = "C2";
 
 export const colorVariants = {
     selected:
-      "m-4 border-b-4 h-16 w-16 text-white font-bold py-2 px-4 hover: rounded bg-synth-brown-100 border-synth-brown-600",
+      "m-4 border-b-4 h-10 w-10 hover: rounded bg-synth-brown-100 border-synth-brown-600",
     unselected:
-      "m-4 border-b-4 h-16 w-16 text-white font-bold py-2 px-4 hover: rounded bg-synth-brown-200 border-synth-brown-400",
+      "m-4 border-b-4 h-10 w-10 hover: rounded bg-synth-brown-200 border-synth-brown-400",
   };
 
 type Props = {
@@ -110,12 +110,11 @@ function SequencerGrid({drums, numberOfBeats, isPlaying, setLoaded}: Props) {
         }}))
         }
     
-    return <div className="grid max-w-full" >
+    return <div className="grid " >
         {drumRowIds.map(drumRowId => (
-            <>
-            <div className="text-left font-bold w-32 mt-3">{drums[drumRowId].name}</div>
+            <div key={drumRowId+"-container"}>
+            <div key={drumRowId+"-name"} className="text-left text-sm font-bold w-32 mt-2 ml-4">{drums[drumRowId].name}</div>
             <div key={drumRowId} className="flex flex-row justify-items-center [&>*:nth-child(4n)]:mr-10">
-                {/* <div className="text-center font-bold w-32">{drums[drumRowId].name}</div> */}
                 {numberOfBeatIds.map( numberOfBeatId => (
                     <button
                         key={drumRowId + " " + numberOfBeatId} 
@@ -130,13 +129,14 @@ function SequencerGrid({drums, numberOfBeats, isPlaying, setLoaded}: Props) {
                 )
             }
         </div>
-        </>
+        </div>
         ))}
-        <div className="flex flex-row [&>*:nth-child(4n)]:mr-14">
+        <div className="flex flex-row [&>*:nth-child(4n)]:mr-[3.25rem] ">
         {numberOfBeatIds.map( (numberOfBeatId) => (
             <div key={numberOfBeatId} className={(numberOfBeatId === currentStep) ?
-                "m-10 rounded-full space-x-16 space-y-32 py-2 px-2 rounded bg-synth-red-400"
-                :"m-10 rounded-full space-x-16 space-y-32 py-2 px-2 rounded bg-synth-red-100"
+                "m-7 rounded-full py-2 px-2 rounded bg-synth-red-400"
+                :
+                "m-7 rounded-full py-2 px-2 rounded bg-synth-red-100"
             }
                 ></div>
         ) ) 
