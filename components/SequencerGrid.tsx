@@ -88,7 +88,7 @@ function SequencerGrid({drums, numberOfBeats, isPlaying, setLoaded}: Props) {
         }, [...numberOfBeatIds], "16n");
 
         if(isPlaying) {
-            sequenceRef.current?.start(undefined, currentStep);
+            sequenceRef.current?.start(undefined, currentStep+1);
         } else {
             sequenceRef.current?.stop();
             setCurrentStep(0);
@@ -110,7 +110,7 @@ function SequencerGrid({drums, numberOfBeats, isPlaying, setLoaded}: Props) {
         }}))
         }
     
-    return <div className="grid " >
+    return <div className="grid mt-2" >
         {drumRowIds.map(drumRowId => (
             <div key={drumRowId+"-container"}>
             <div key={drumRowId+"-name"} className="text-left text-sm font-bold w-32 mt-2 ml-4">{drums[drumRowId].name}</div>

@@ -1,6 +1,8 @@
 'use client'
 import SequencerGrid from '@/components/SequencerGrid'
 import React from 'react'
+import Link from 'next/link';
+import Image from 'next/image';
 import * as Tone from "tone";
 
 export default function Home() {
@@ -22,14 +24,25 @@ export default function Home() {
   }
    
   return (
-    <main className="flex min-h-screen items-center flex-col flex-row justify-between bg-synth-body-cream">
-      <SequencerGrid 
+    <main className="flex min-h-screen items-center flex-col flex-row justify-between bg-synth-body-cream font-mono">
+      <header className="flex mt-2" >Drum Sequencer built using React, typescript, Tone.js and sounds from the Casio MT-40
+      <a href={"https://github.com/ben-howarth/react-mt-40-drum-sequencer"} className='justify-self-end' target="_blank">
+        <Image
+        src={"/github-mark.svg"}
+        alt="link to github repo"
+        width={20}
+        height={20}
+        className='ml-8'
+        ></Image>
+      </a>
+      </header>
+      <SequencerGrid
       drums={[
-        {name: "Hihat Closed", sample: "/drums/open hat.wav"},
-        {name: "Hihat Open", sample: "/drums/closed hat.wav"},
-        {name: "Clave", sample: "/drums/clave.wav"},
-        {name: "Snare", sample: "/drums/snare.wav"},
-        {name: "Kick", sample: "/drums/kick.wav"},
+        {name: "Hihat Open", sample: "/samples/open hat.wav"},
+        {name: "Hihat Closed", sample: "/samples/closed hat.wav"},
+        {name: "Clave", sample: "/samples/clave.wav"},
+        {name: "Snare", sample: "/samples/snare.wav"},
+        {name: "Kick", sample: "/samples/kick.wav"},
     ]}
     numberOfBeats={16}
     isPlaying={isPlaying}
