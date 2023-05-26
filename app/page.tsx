@@ -37,7 +37,7 @@ export default function Home() {
             alt="link to github repo"
             width={20}
             height={20}
-            className="ml-8"
+            className="ml-8 mr-2 my-1"
           ></Image>
         </a>
       </header>

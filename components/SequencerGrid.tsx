@@ -38,30 +38,13 @@ type SequencerTrack = {
   sequencerCells: SequencerCell[];
 };
 
-function loadDrums(
-  drums: Drum[],
-  setLoaded: Dispatch<SetStateAction<boolean>>
-): Track[] {
-  return drums.map((sample, i) => ({
-    id: i,
-    sampler: new Tone.Sampler({
-      urls: {
-        [NOTE]: sample.sample,
-      },
-      onload: () => {
-        setLoaded(true);
-      },
-    }).toDestination(),
-  }));
-}
-
 function SequencerGrid({ drums, numberOfBeats, isPlaying, setLoaded }: Props) {
   // store a grid to mark drums as active/inactive at a given point in the sequence
   const [grid, setGrid] = useState<SequencerTrack[]>(createInitialGrid(drums));
   // stores the current step for display purposes
   const [activeStep, setActiveStep] = useState<number>(0);
   // load each drum sample into a Tone Sampler and store using a ref
-  const tracksRef = useRef<Track[]>(loadDrums(drums, setLoaded));
+  const tracksRef = useRef<Track[]>();
 
   const sequenceRef = useRef<Tone.Sequence | null>(null);
   const drumRowIds = useMemo(
@@ -72,6 +55,20 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setLoaded }: Props) {
     () => Array.from(Array(numberOfBeats).keys()),
     [numberOfBeats]
   );
+
+  useEffect(() =>  {
+    tracksRef.current = drums.map((sample, i) => ({
+        id: i,
+        sampler: new Tone.Sampler({
+          urls: {
+            [NOTE]: sample.sample,
+          },
+          onload: () => {
+            setLoaded(true);
+          },
+        }).toDestination(),
+      }));
+  }, [drums, setLoaded])
 
   function createInitialGrid(drums: Drum[]): SequencerTrack[] {
     return drums.map((drum, i) => ({
@@ -84,10 +81,28 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setLoaded }: Props) {
     }));
   }
 
+  function loadDrums(
+    drums: Drum[],
+    setLoaded: Dispatch<SetStateAction<boolean>>
+  ): Track[] {
+    return drums.map((sample, i) => ({
+      id: i,
+      sampler: new Tone.Sampler({
+        urls: {
+          [NOTE]: sample.sample,
+        },
+        onload: () => {
+          setLoaded(true);
+        },
+      }).toDestination(),
+    }));
+  }
+  
+
   useEffect(() => {
     function repeat(step: number, time: number) {
       setActiveStep(step);
-      tracksRef.current.forEach((track) => {
+      tracksRef.current?.forEach((track) => {
         const currentPosition = grid
           .find((sequencerTrack) => sequencerTrack.id === track.id)
           ?.sequencerCells.at(step);
@@ -172,8 +187,8 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setLoaded }: Props) {
             key={numberOfBeatId}
             className={
               numberOfBeatId === activeStep
-                ? "m-7 border-2 border-black rounded-full py-1.5 px-1.5 rounded bg-synth-red-400"
-                : "m-7 border-2 border-black rounded-full py-1.5 px-1.5 rounded bg-synth-red-100"
+                ? "mx-7 border-2 border-black rounded-full py-1.5 px-1.5 rounded bg-synth-red-400"
+                : "mx-7 border-2 border-black rounded-full py-1.5 px-1.5 rounded bg-synth-red-100"
             }
           ></div>
         ))}
