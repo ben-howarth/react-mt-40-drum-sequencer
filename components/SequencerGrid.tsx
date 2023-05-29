@@ -58,7 +58,6 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying }: Props) {
   );
 
   useEffect(() =>  {
-    console.log("tracks loaded")
     tracksRef.current = drums.map((sample, i) => ({
         id: i,
         sampler: new Tone.Sampler({
@@ -66,7 +65,6 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying }: Props) {
             [NOTE]: sample.sample,
           },
           onload: () => {
-            console.log()
             setIsLoaded(true);
           },
         }).toDestination(),
@@ -75,7 +73,6 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying }: Props) {
       return () => {
         tracksRef.current?.forEach(track => track.sampler.dispose());
         setIsLoaded(false);
-        console.log("tracks disposed")
       }
   }, [])
 
