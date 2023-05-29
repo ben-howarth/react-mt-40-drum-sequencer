@@ -6,7 +6,6 @@ import * as Tone from "tone";
 
 export default function Home() {
   const [toneStarted, setToneStarted] = useState(false);
-  const [loaded, setLoaded] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
   function handleButtonClick() {
@@ -51,7 +50,7 @@ export default function Home() {
         ]}
         numberOfBeats={16}
         isPlaying={isPlaying}
-        setLoaded={setLoaded}
+        // setLoaded={setLoaded}
       ></SequencerGrid>
       <button
         className={
@@ -60,7 +59,7 @@ export default function Home() {
             : "justify-self-start mb-8 border-b-4 border-2 h-12 w-64 text-white text-lg font-bold py-2 px-4 bg-synth-red-200 border-synth-red-600"
         }
         onClick={() => handleButtonClick()}
-        disabled={!loaded}
+        // disabled={!loaded}
       >
         {isPlaying ? "Stop" : "Start"}
       </button>

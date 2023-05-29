@@ -38,7 +38,8 @@ type SequencerTrack = {
   sequencerCells: SequencerCell[];
 };
 
-function SequencerGrid({ drums, numberOfBeats, isPlaying, setLoaded }: Props) {
+function SequencerGrid({ drums, numberOfBeats, isPlaying }: Props) {
+  const [isLoaded, setIsLoaded] = useState(false);
   // store a grid to mark drums as active/inactive at a given point in the sequence
   const [grid, setGrid] = useState<SequencerTrack[]>(createInitialGrid(drums));
   // stores the current step for display purposes
@@ -57,6 +58,7 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setLoaded }: Props) {
   );
 
   useEffect(() =>  {
+    console.log("tracks loaded")
     tracksRef.current = drums.map((sample, i) => ({
         id: i,
         sampler: new Tone.Sampler({
@@ -64,11 +66,18 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setLoaded }: Props) {
             [NOTE]: sample.sample,
           },
           onload: () => {
-            setLoaded(true);
+            console.log()
+            setIsLoaded(true);
           },
         }).toDestination(),
       }));
-  }, [drums, setLoaded])
+      
+      return () => {
+        tracksRef.current?.forEach(track => track.sampler.dispose());
+        setIsLoaded(false);
+        console.log("tracks disposed")
+      }
+  }, [])
 
   function createInitialGrid(drums: Drum[]): SequencerTrack[] {
     return drums.map((drum, i) => ({
@@ -78,23 +87,6 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setLoaded }: Props) {
         position: i,
         isActive: false,
       })),
-    }));
-  }
-
-  function loadDrums(
-    drums: Drum[],
-    setLoaded: Dispatch<SetStateAction<boolean>>
-  ): Track[] {
-    return drums.map((sample, i) => ({
-      id: i,
-      sampler: new Tone.Sampler({
-        urls: {
-          [NOTE]: sample.sample,
-        },
-        onload: () => {
-          setLoaded(true);
-        },
-      }).toDestination(),
     }));
   }
   
@@ -120,7 +112,7 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setLoaded }: Props) {
       "16n"
     );
 
-    if (isPlaying) {
+    if (isPlaying && isLoaded) {
       if (activeStep === 15 || activeStep === 0) {
         sequenceRef.current?.start(undefined, activeStep);
       } else {
