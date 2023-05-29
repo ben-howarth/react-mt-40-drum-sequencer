@@ -19,7 +19,7 @@ type Props = {
   drums: Drum[];
   numberOfBeats: number;
   isPlaying: boolean;
-  setLoaded: Dispatch<SetStateAction<boolean>>;
+  setIsLoaded: Dispatch<SetStateAction<boolean>>;
 };
 
 type Track = {
@@ -38,8 +38,7 @@ type SequencerTrack = {
   sequencerCells: SequencerCell[];
 };
 
-function SequencerGrid({ drums, numberOfBeats, isPlaying }: Props) {
-  const [isLoaded, setIsLoaded] = useState(false);
+function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) {
   // store a grid to mark drums as active/inactive at a given point in the sequence
   const [grid, setGrid] = useState<SequencerTrack[]>(createInitialGrid(drums));
   // stores the current step for display purposes
@@ -109,7 +108,7 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying }: Props) {
       "16n"
     );
 
-    if (isPlaying && isLoaded) {
+    if (isPlaying) {
       if (activeStep === 15 || activeStep === 0) {
         sequenceRef.current?.start(undefined, activeStep);
       } else {
