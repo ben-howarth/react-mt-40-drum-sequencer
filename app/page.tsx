@@ -3,6 +3,7 @@ import SequencerGrid from "@/components/SequencerGrid";
 import React, { useState } from "react";
 import Image from "next/image";
 import * as Tone from "tone";
+import HideShowComponent from "@/components/HideShowComponent";
 
 export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -41,6 +42,7 @@ export default function Home() {
           ></Image>
         </a>
       </header>
+      <HideShowComponent>
       <SequencerGrid
         drums={[
           { name: "Hihat Open", sample: "/samples/open hat.wav" },
@@ -53,6 +55,8 @@ export default function Home() {
         isPlaying={isPlaying}
         setIsLoaded={setIsLoaded}
       ></SequencerGrid>
+      </HideShowComponent>
+      
       <button
         className={
           isPlaying
