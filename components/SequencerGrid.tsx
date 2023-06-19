@@ -1,11 +1,4 @@
-import React, {
-  Dispatch,
-  SetStateAction,
-  useEffect,
-  useMemo,
-  useState,
-  useRef,
-} from "react";
+import React, { Dispatch, SetStateAction, useEffect, useMemo, useState, useRef } from "react";
 import * as Tone from "tone";
 
 const NOTE = "C2";
@@ -47,53 +40,45 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
   const tracksRef = useRef<Track[]>();
 
   const sequenceRef = useRef<Tone.Sequence | null>(null);
-  const drumRowIds = useMemo(
-    () => Array.from(Array(drums.length).keys()),
-    [drums]
-  );
-  const numberOfBeatIds = useMemo(
-    () => Array.from(Array(numberOfBeats).keys()),
-    [numberOfBeats]
-  );
+  const drumRowIds = useMemo(() => Array.from(Array(drums.length).keys()), [drums]);
+  const numberOfBeatIds = useMemo(() => Array.from(Array(numberOfBeats).keys()), [numberOfBeats]);
 
-  useEffect(() =>  {
+  useEffect(() => {
     tracksRef.current = drums.map((sample, i) => ({
-        id: i,
-        sampler: new Tone.Sampler({
-          urls: {
-            [NOTE]: sample.sample,
-          },
-          onload: () => {
-            setIsLoaded(true);
-          },
-        }).toDestination(),
-      }));
-      
-      return () => {
-        tracksRef.current?.forEach(track => track.sampler.dispose());
-        setIsLoaded(false);
-      }
-  }, [])
+      id: i,
+      sampler: new Tone.Sampler({
+        urls: {
+          [NOTE]: sample.sample,
+        },
+        onload: () => {
+          setIsLoaded(true);
+        },
+      }).toDestination(),
+    }));
+
+    return () => {
+      tracksRef.current?.forEach((track) => track.sampler.dispose());
+      setIsLoaded(false);
+    };
+  }, []);
 
   function createInitialGrid(drums: Drum[]): SequencerTrack[] {
     return drums.map((drum, i) => ({
       id: i,
       name: drum.name,
-      sequencerCells: Array.from(Array(numberOfBeats)).map((i) => ({
-        position: i,
+      sequencerCells: Array.from(Array(numberOfBeats)).map((_, position) => ({
+        position,
         isActive: false,
       })),
     }));
   }
-  
 
   useEffect(() => {
     function repeat(step: number, time: number) {
       setActiveStep(step);
       tracksRef.current?.forEach((track) => {
-        const currentPosition = grid
-          .find((sequencerTrack) => sequencerTrack.id === track.id)
-          ?.sequencerCells.at(step);
+        const currentPosition = grid.find((sequencerTrack) => sequencerTrack.id === track.id)
+          ?.sequencerCells[step];
         if (currentPosition?.isActive) {
           track.sampler.triggerAttack(NOTE, time);
         }
@@ -109,11 +94,7 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
     );
 
     if (isPlaying) {
-      if (activeStep === 15 || activeStep === 0) {
         sequenceRef.current?.start(undefined, activeStep);
-      } else {
-        sequenceRef.current?.start(undefined, activeStep + 1);
-      }
     } else {
       sequenceRef.current?.stop();
       setActiveStep(0);
@@ -122,22 +103,30 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
     return () => {
       sequenceRef.current?.dispose();
     };
-    // ommitting activeStep here. it's used solely for display purposes and if included triggers enough rerenders to distort audio
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grid, numberOfBeatIds, isPlaying]);
 
   function updateGrid(drumRowId: number, numberOfBeatId: number) {
-    setGrid(
-      grid.map((sequencerTrack) => {
+    setGrid((prevGrid) => {
+      const newGrid = prevGrid.map((sequencerTrack) => {
         if (sequencerTrack.id === drumRowId) {
-          sequencerTrack.sequencerCells[numberOfBeatId].isActive =
-            !sequencerTrack.sequencerCells[numberOfBeatId].isActive;
-          return sequencerTrack;
-        } else {
-          return sequencerTrack;
+          return {
+            ...sequencerTrack,
+            sequencerCells: sequencerTrack.sequencerCells.map((cell) => {
+              if (cell.position === numberOfBeatId) {
+                return {
+                  ...cell,
+                  isActive: !cell.isActive,
+                };
+              }
+              return cell;
+            }),
+          };
         }
-      })
-    );
+        return sequencerTrack;
+      });
+      return newGrid;
+    });
   }
 
   return (
@@ -150,10 +139,7 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
           >
             {drums[drumRowId].name}
           </div>
-          <div
-            key={drumRowId}
-            className="flex flex-row justify-items-center [&>*:nth-child(4n)]:mr-10"
-          >
+          <div key={drumRowId} className="flex flex-row justify-items-center [&>*:nth-child(4n)]:mr-10">
             {numberOfBeatIds.map((numberOfBeatId) => (
               <button
                 key={drumRowId + " " + numberOfBeatId}
