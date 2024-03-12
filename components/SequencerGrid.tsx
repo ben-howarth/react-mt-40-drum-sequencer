@@ -1,5 +1,6 @@
 import React, { Dispatch, SetStateAction, useEffect, useMemo, useState, useRef } from "react";
 import * as Tone from "tone";
+import debounce from "lodash.debounce";
 
 const NOTE = "C2";
 
@@ -38,11 +39,21 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
   const [activeStep, setActiveStep] = useState<number>(0);
   // load each drum sample into a Tone Sampler and store using a ref
   const tracksRef = useRef<Track[]>();
+   // Ref to hold the grid state separate from the UI rendering
+  const gridStateRef = useRef<SequencerTrack[]>([]);
+
+  const debouncedUpdateGrid = useRef(debounce(updateGrid, 100)).current; // Debounced updateGrid function
+
 
   const sequenceRef = useRef<Tone.Sequence | null>(null);
   const drumRowIds = useMemo(() => Array.from(Array(drums.length).keys()), [drums]);
   const numberOfBeatIds = useMemo(() => Array.from(Array(numberOfBeats).keys()), [numberOfBeats]);
 
+  useEffect(() => {
+      gridStateRef.current = grid; // Update the ref with the current grid state
+
+  }, [grid]);
+  
   useEffect(() => {
     tracksRef.current = drums.map((sample, i) => ({
       id: i,
@@ -60,6 +71,7 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
       tracksRef.current?.forEach((track) => track.sampler.dispose());
       setIsLoaded(false);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function createInitialGrid(drums: Drum[]): SequencerTrack[] {
@@ -73,38 +85,66 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
     }));
   }
 
-  useEffect(() => {
-    function repeat(step: number, time: number) {
-      setActiveStep(step);
-      tracksRef.current?.forEach((track) => {
-        const currentPosition = grid.find((sequencerTrack) => sequencerTrack.id === track.id)
-          ?.sequencerCells[step];
-        if (currentPosition?.isActive) {
-          track.sampler.triggerAttack(NOTE, time);
-        }
-      });
-    }
+  // useEffect(() => {
+  //   function repeat(step: number, time: number) {
+  //     setActiveStep(step);
+  //     tracksRef.current?.forEach((track) => {
+  //       const currentPosition = gridStateRef.current.find((sequencerTrack) => sequencerTrack.id === track.id)
+  //         ?.sequencerCells[step];
+  //       if (currentPosition?.isActive) {
+  //         track.sampler.triggerAttack(NOTE, time);
+  //       }
+  //     });
+  //   }
 
-    sequenceRef.current = new Tone.Sequence(
+  //   sequenceRef.current = new Tone.Sequence(
+  //     (time, step) => {
+  //       repeat(step, time);
+  //     },
+  //     [...numberOfBeatIds],
+  //     "16n"
+  //   );
+
+  //   if (isPlaying) {
+  //       sequenceRef.current?.start(undefined, activeStep);
+  //   } else {
+  //     sequenceRef.current?.stop();
+  //     setActiveStep(0);
+  //   }
+
+  //   return () => {
+  //     sequenceRef.current?.dispose();
+  //   };
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [grid, numberOfBeatIds, isPlaying]);
+  useEffect(() => {
+    if (!isPlaying) return;
+    
+    const loop = new Tone.Sequence(
       (time, step) => {
-        repeat(step, time);
+        setActiveStep(step);
+        gridStateRef.current.forEach((sequencerTrack) => {
+          const { id, sequencerCells } = sequencerTrack;
+          const cell = sequencerCells[step];
+          if (cell.isActive) {
+            const track = tracksRef.current.find((t) => t.id === id);
+            if (track) {
+              track.sampler.triggerAttack(NOTE, time);
+            }
+          }
+        });
       },
-      [...numberOfBeatIds],
+      numberOfBeatIds,
       "16n"
     );
 
-    if (isPlaying) {
-        sequenceRef.current?.start(undefined, activeStep);
-    } else {
-      sequenceRef.current?.stop();
-      setActiveStep(0);
-    }
+    loop.start();
+    loop.loop = true;
 
     return () => {
-      sequenceRef.current?.dispose();
+      loop.stop();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [grid, numberOfBeatIds, isPlaying]);
+  }, [isPlaying, numberOfBeatIds]);
 
   function updateGrid(drumRowId: number, numberOfBeatId: number) {
     setGrid((prevGrid) => {
@@ -129,6 +169,10 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
     });
   }
 
+  function debouncedGridUpdate(drumRowId: number, numberOfBeatId: number) {
+    debouncedUpdateGrid(drumRowId, numberOfBeatId);
+  }
+
   return (
     <div className="grid mt-2">
       {drumRowIds.map((drumRowId) => (
@@ -149,7 +193,7 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
                     ? "m-4 border-b-4 border-2 h-10 w-10 bg-synth-brown-100 border-synth-brown-600"
                     : "m-4 border-b-4 border-2 h-10 w-10 bg-synth-brown-200 border-synth-brown-400"
                 }
-                onClick={() => updateGrid(drumRowId, numberOfBeatId)}
+                onClick={() => debouncedGridUpdate(drumRowId, numberOfBeatId)}
               ></button>
             ))}
           </div>
