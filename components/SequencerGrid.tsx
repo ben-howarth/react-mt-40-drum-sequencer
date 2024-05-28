@@ -1,12 +1,6 @@
-import React, {
-  Dispatch,
-  SetStateAction,
-  useEffect,
-  useMemo,
-  useState,
-  useRef,
-} from "react";
+import React, { Dispatch, SetStateAction, useEffect, useMemo, useState, useRef } from "react";
 import * as Tone from "tone";
+import debounce from "lodash.debounce";
 
 const NOTE = "C2";
 
@@ -45,19 +39,22 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
   const [activeStep, setActiveStep] = useState<number>(0);
   // load each drum sample into a Tone Sampler and store using a ref
   const tracksRef = useRef<Track[]>();
+   // Ref to hold the grid state separate from the UI rendering
+  const gridStateRef = useRef<SequencerTrack[]>([]);
 
-  const sequenceRef = useRef<Tone.Sequence | null>(null);
-  const drumRowIds = useMemo(
-    () => Array.from(Array(drums.length).keys()),
-    [drums]
-  );
-  const numberOfBeatIds = useMemo(
-    () => Array.from(Array(numberOfBeats).keys()),
-    [numberOfBeats]
-  );
+  const debouncedUpdateGrid = useRef(debounce(updateGrid, 100)).current; // Debounced updateGrid function
 
-  useEffect(() =>  {
-    tracksRef.current = drums.map((sample, i) => ({
+  const drumRowIds = useMemo(() => Array.from(Array(drums.length).keys()), [drums]);
+  const numberOfBeatIds = useMemo(() => Array.from(Array(numberOfBeats).keys()), [numberOfBeats]);
+
+  useEffect(() => {
+      gridStateRef.current = grid; // Update the ref with the current grid state
+
+  }, [grid]);
+  
+  useEffect(() => {
+    if(tracksRef.current) {
+      tracksRef.current = drums.map((sample, i) => ({
         id: i,
         sampler: new Tone.Sampler({
           urls: {
@@ -68,76 +65,80 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
           },
         }).toDestination(),
       }));
-      
-      return () => {
-        tracksRef.current?.forEach(track => track.sampler.dispose());
-        setIsLoaded(false);
-      }
-  }, [])
+    }
+    
+    return () => {
+      tracksRef.current?.forEach((track) => track.sampler.dispose());
+      setIsLoaded(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function createInitialGrid(drums: Drum[]): SequencerTrack[] {
     return drums.map((drum, i) => ({
       id: i,
       name: drum.name,
-      sequencerCells: Array.from(Array(numberOfBeats)).map((i) => ({
-        position: i,
+      sequencerCells: Array.from(Array(numberOfBeats)).map((_, position) => ({
+        position,
         isActive: false,
       })),
     }));
   }
-  
 
   useEffect(() => {
-    function repeat(step: number, time: number) {
-      setActiveStep(step);
-      tracksRef.current?.forEach((track) => {
-        const currentPosition = grid
-          .find((sequencerTrack) => sequencerTrack.id === track.id)
-          ?.sequencerCells.at(step);
-        if (currentPosition?.isActive) {
-          track.sampler.triggerAttack(NOTE, time);
-        }
-      });
-    }
-
-    sequenceRef.current = new Tone.Sequence(
+    if (!isPlaying) return;
+    
+    const loop = new Tone.Sequence(
       (time, step) => {
-        repeat(step, time);
+        setActiveStep(step);
+        gridStateRef.current.forEach((sequencerTrack) => {
+          const { id, sequencerCells } = sequencerTrack;
+          const cell = sequencerCells[step];
+          if (cell.isActive && tracksRef.current) {
+            const track = tracksRef.current.find((t) => t.id === id);
+            if (track) {
+              track.sampler.triggerAttack(NOTE, time);
+            }
+          }
+        });
       },
-      [...numberOfBeatIds],
+      numberOfBeatIds,
       "16n"
     );
 
-    if (isPlaying) {
-      if (activeStep === 15 || activeStep === 0) {
-        sequenceRef.current?.start(undefined, activeStep);
-      } else {
-        sequenceRef.current?.start(undefined, activeStep + 1);
-      }
-    } else {
-      sequenceRef.current?.stop();
-      setActiveStep(0);
-    }
+    loop.start();
+    loop.loop = true;
 
     return () => {
-      sequenceRef.current?.dispose();
+      loop.stop();
     };
-    // ommitting activeStep here. it's used solely for display purposes and if included triggers enough rerenders to distort audio
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [grid, numberOfBeatIds, isPlaying]);
+  }, [isPlaying, numberOfBeatIds]);
 
   function updateGrid(drumRowId: number, numberOfBeatId: number) {
-    setGrid(
-      grid.map((sequencerTrack) => {
+    setGrid((prevGrid) => {
+      const newGrid = prevGrid.map((sequencerTrack) => {
         if (sequencerTrack.id === drumRowId) {
-          sequencerTrack.sequencerCells[numberOfBeatId].isActive =
-            !sequencerTrack.sequencerCells[numberOfBeatId].isActive;
-          return sequencerTrack;
-        } else {
-          return sequencerTrack;
+          return {
+            ...sequencerTrack,
+            sequencerCells: sequencerTrack.sequencerCells.map((cell) => {
+              if (cell.position === numberOfBeatId) {
+                return {
+                  ...cell,
+                  isActive: !cell.isActive,
+                };
+              }
+              return cell;
+            }),
+          };
         }
-      })
-    );
+        return sequencerTrack;
+      });
+      return newGrid;
+    });
+  }
+
+  function debouncedGridUpdate(drumRowId: number, numberOfBeatId: number) {
+    debouncedUpdateGrid(drumRowId, numberOfBeatId);
   }
 
   return (
@@ -150,10 +151,7 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
           >
             {drums[drumRowId].name}
           </div>
-          <div
-            key={drumRowId}
-            className="flex flex-row justify-items-center [&>*:nth-child(4n)]:mr-10"
-          >
+          <div key={drumRowId} className="flex flex-row justify-items-center [&>*:nth-child(4n)]:mr-10">
             {numberOfBeatIds.map((numberOfBeatId) => (
               <button
                 key={drumRowId + " " + numberOfBeatId}
@@ -163,7 +161,7 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
                     ? "m-4 border-b-4 border-2 h-10 w-10 bg-synth-brown-100 border-synth-brown-600"
                     : "m-4 border-b-4 border-2 h-10 w-10 bg-synth-brown-200 border-synth-brown-400"
                 }
-                onClick={() => updateGrid(drumRowId, numberOfBeatId)}
+                onClick={() => debouncedGridUpdate(drumRowId, numberOfBeatId)}
               ></button>
             ))}
           </div>

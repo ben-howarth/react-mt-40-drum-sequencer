@@ -25,3 +25,16 @@ body {
     )
     rgb(var(--background-start-rgb));
 }
+
+.content {
+  transition: height 0.3s ease-in-out;
+  overflow: hidden;
+}
+
+.visible {
+  height: auto;
+}
+
+.hidden {
+  height: 0;
+}
