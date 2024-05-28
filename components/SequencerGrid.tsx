@@ -44,8 +44,6 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
 
   const debouncedUpdateGrid = useRef(debounce(updateGrid, 100)).current; // Debounced updateGrid function
 
-
-  const sequenceRef = useRef<Tone.Sequence | null>(null);
   const drumRowIds = useMemo(() => Array.from(Array(drums.length).keys()), [drums]);
   const numberOfBeatIds = useMemo(() => Array.from(Array(numberOfBeats).keys()), [numberOfBeats]);
 
@@ -55,18 +53,20 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
   }, [grid]);
   
   useEffect(() => {
-    tracksRef.current = drums.map((sample, i) => ({
-      id: i,
-      sampler: new Tone.Sampler({
-        urls: {
-          [NOTE]: sample.sample,
-        },
-        onload: () => {
-          setIsLoaded(true);
-        },
-      }).toDestination(),
-    }));
-
+    if(tracksRef.current) {
+      tracksRef.current = drums.map((sample, i) => ({
+        id: i,
+        sampler: new Tone.Sampler({
+          urls: {
+            [NOTE]: sample.sample,
+          },
+          onload: () => {
+            setIsLoaded(true);
+          },
+        }).toDestination(),
+      }));
+    }
+    
     return () => {
       tracksRef.current?.forEach((track) => track.sampler.dispose());
       setIsLoaded(false);
@@ -85,38 +85,6 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
     }));
   }
 
-  // useEffect(() => {
-  //   function repeat(step: number, time: number) {
-  //     setActiveStep(step);
-  //     tracksRef.current?.forEach((track) => {
-  //       const currentPosition = gridStateRef.current.find((sequencerTrack) => sequencerTrack.id === track.id)
-  //         ?.sequencerCells[step];
-  //       if (currentPosition?.isActive) {
-  //         track.sampler.triggerAttack(NOTE, time);
-  //       }
-  //     });
-  //   }
-
-  //   sequenceRef.current = new Tone.Sequence(
-  //     (time, step) => {
-  //       repeat(step, time);
-  //     },
-  //     [...numberOfBeatIds],
-  //     "16n"
-  //   );
-
-  //   if (isPlaying) {
-  //       sequenceRef.current?.start(undefined, activeStep);
-  //   } else {
-  //     sequenceRef.current?.stop();
-  //     setActiveStep(0);
-  //   }
-
-  //   return () => {
-  //     sequenceRef.current?.dispose();
-  //   };
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [grid, numberOfBeatIds, isPlaying]);
   useEffect(() => {
     if (!isPlaying) return;
     
@@ -126,7 +94,7 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
         gridStateRef.current.forEach((sequencerTrack) => {
           const { id, sequencerCells } = sequencerTrack;
           const cell = sequencerCells[step];
-          if (cell.isActive) {
+          if (cell.isActive && tracksRef.current) {
             const track = tracksRef.current.find((t) => t.id === id);
             if (track) {
               track.sampler.triggerAttack(NOTE, time);
