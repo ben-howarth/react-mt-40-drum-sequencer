@@ -13,7 +13,7 @@ export default function HideShow({ children }: HideShowProps){
 
   return (
     <div>
-      <button onClick={toggleVisibility}>Toggle</button>
+      {/* <button onClick={toggleVisibility}>Toggle</button> */}
       {children}
     </div>
   );
