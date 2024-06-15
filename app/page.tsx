@@ -3,24 +3,45 @@ import SequencerGrid from "@/components/SequencerGrid";
 import React, { useState } from "react";
 import Image from "next/image";
 import * as Tone from "tone";
-import HideShowComponent from "@/components/HideShowComponent";
 
 export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [toneStarted, setToneStarted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  function handleButtonClick() {
+  async function handleButtonClick() {
     if (!toneStarted) {
-      Tone.start();
-      setToneStarted(true);
+      try {
+        await Tone.start();
+        setToneStarted(true);
+      } catch (error) {
+        // console.error('Error starting Tone.js:', error);
+        return;
+      }
     }
-    if (!isPlaying) {
-      Tone.getTransport().start();
-    } else {
-      Tone.getTransport().stop();
-    }
-    setIsPlaying(!isPlaying);
+    
+    const togglePlay = () => {
+      return new Promise((resolve, reject) => {
+        try {
+          if (!isPlaying) {
+            Tone.Transport.start();
+          } else {
+            Tone.Transport.stop();
+          }
+          resolve('ya');
+        } catch (error) {
+          reject(error);
+        }
+      });
+    };
+
+    togglePlay()
+      .then(() => {
+        setIsPlaying(!isPlaying);
+      })
+      .catch((error) => {
+        // console.error('Error toggling transport:', error);
+      });
   }
 
   return (
@@ -42,7 +63,6 @@ export default function Home() {
           ></Image>
         </a>
       </header>
-      <HideShowComponent>
       <SequencerGrid
         drums={[
           { name: "Hihat Open", sample: "/samples/open hat.wav" },
@@ -55,7 +75,6 @@ export default function Home() {
         isPlaying={isPlaying}
         setIsLoaded={setIsLoaded}
       ></SequencerGrid>
-      </HideShowComponent>
       
       <button
         className={
