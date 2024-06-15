@@ -53,7 +53,7 @@ function SequencerGrid({ drums, numberOfBeats, isPlaying, setIsLoaded }: Props) 
   }, [grid]);
   
   useEffect(() => {
-    if(tracksRef.current) {
+    if (!tracksRef.current) {
       tracksRef.current = drums.map((sample, i) => ({
         id: i,
         sampler: new Tone.Sampler({
